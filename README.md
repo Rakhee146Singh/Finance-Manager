@@ -28,3 +28,7 @@ PHP version: 8.1.13
 ## Delete
 ## List
 ## Status Change
+
+
+## Postman Collection
+link: https://documenter.getpostman.com/view/25052728/2s93CPpBpG
