@@ -16,34 +16,37 @@ class FinancialYearController extends Controller
     public function list(Request $request)
     {
         $request->validate([
-            'year'          => 'required|integer|digits:4',
-            'sortOrder'     => 'required|in:asc,desc',
-            'sortField'     => 'required',
-            'perPage'       => 'required|integer',
-            'currentPage'   => 'required|integer'
+            'search'        => 'nullable|integer|digits:4',
+            'sortOrder'     => 'nullable|in:asc,desc',
+            'sortField'     => 'nullable',
+            'perPage'       => 'nullable|integer',
+            'currentPage'   => 'nullable|integer'
         ]);
-        $finances = FinancialYear::query(); //query
+        $query = FinancialYear::query(); //query
 
-        //sorting
-        if ($request->sortField && $request->sortOrder) {
-            $finances = $finances->orderBy($request->sortField, $request->sortOrder);
-        } else {
-            $finances = $finances->orderBy('id', 'DESC');
-        };
-
-        //searching
-        if (isset($request->name)) {
-            $finances->where("year", "LIKE", "%{$request->year}%");
+        /* Searching */
+        if (isset($request->search)) {
+            $query = $query->where("year", "LIKE", "%{$request->search}%");
         }
-        //pagination
-        $perPage        = $request->perPage;
-        $currentPage    = $request->currentPage;
-        $finances       = $finances->skip($perPage * ($currentPage - 1))->take($perPage);
-        return response()->json([
-            'success'   => true,
-            'message'   => "Financial Year List",
-            'data'      => $finances->get()
-        ]);
+        /* Sorting */
+        if ($request->sortField || $request->sortOrder) {
+            $query = $query->orderBy($request->sortField, $request->sortOrder);
+        }
+
+        /* Pagination */
+        $count = $query->count();
+        if ($request->perPage && $request->currentPage) {
+            $perPage        = $request->perPage;
+            $currentPage    = $request->currentPage;
+            $query       = $query->skip($perPage * ($currentPage - 1))->take($perPage);
+        }
+        /* Get records */
+        $finances = $query->get();
+        $data = [
+            'count' => $count,
+            'data'  => $finances
+        ];
+        return ok('Finance list', $data);
     }
 
     /**
@@ -60,11 +63,7 @@ class FinancialYearController extends Controller
             'end_date'      => 'required',
         ]);
         $finance = FinancialYear::create($request->only('year', 'start_date', 'end_date'));
-        return response()->json([
-            'success'   => true,
-            'message'   => "Year Created Successfully",
-            'data'      => $finance
-        ]);
+        return ok('Finance created successfully!', $finance);
     }
 
     /**
@@ -76,10 +75,7 @@ class FinancialYearController extends Controller
     public function show($id)
     {
         $finance = FinancialYear::findOrFail($id);
-        return response()->json([
-            'success' => true,
-            'data'    => $finance
-        ]);
+        return ok('Finance retrieved successfully', $finance);
     }
 
     /**
@@ -97,10 +93,7 @@ class FinancialYearController extends Controller
             'end_date'      => 'required|after:start_date'
         ]);
         $finance->update($request->only('year', 'start_date', 'end_date'));
-        return response()->json([
-            'success' => true,
-            'message' => "Data Updated Successfully",
-        ]);
+        return ok('Finance updated successfully', $finance);
     }
 
     /**
@@ -112,10 +105,7 @@ class FinancialYearController extends Controller
     public function delete($id)
     {
         FinancialYear::findOrFail($id)->delete();
-        return response()->json([
-            'success' => true,
-            'message' => "Data Deleted Successfully",
-        ]);
+        return ok('Finance deleted successfully');
     }
 
 
@@ -132,9 +122,6 @@ class FinancialYearController extends Controller
             'is_active' => 'required|bool'
         ]);
         $finance->update($request->only('is_active'));
-        return response()->json([
-            'success' => true,
-            'message' => "Status Updated Successfully",
-        ]);
+        return ok('Finance status updated successfully', $finance);
     }
 }
