@@ -18,10 +18,6 @@ class BaseModel extends Model
                 $model->{$model->getKeyName()} = Str::uuid()->toString();
             }
         });
-
-        static::creating(function ($model) {
-            $model->created_by = auth()->user()->id;
-        });
         static::updating(function ($model) {
             $model->updated_by = auth()->user()->id;
         });

@@ -4,6 +4,8 @@ namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
+use App\Models\Error;
+use Illuminate\Support\Facades\Auth;
 
 class Handler extends ExceptionHandler
 {
@@ -22,8 +24,11 @@ class Handler extends ExceptionHandler
      * @var array<int, class-string<\Throwable>>
      */
     protected $dontReport = [
-        //
+        AuthorizationException::class,
+        HttpException::class,
+        // ModelNotFoundException::class,
     ];
+
 
     /**
      * A list of the inputs that are never flashed to the session on validation exceptions.
@@ -41,8 +46,23 @@ class Handler extends ExceptionHandler
      */
     public function register(): void
     {
-        $this->reportable(function (Throwable $e) {
-            //
+        $this->reportable(function (Throwable $exception) {
+            // only create entries if app environment is not local
+            // if (!app()->environment('local')) {
+            $user_id = 0;
+            if (Auth::user()) {
+                $user_id = Auth::user()->id;
+            }
+            $data = array(
+                'user_id'   => $user_id,
+                'code'      => $exception->getCode(),
+                'file'      => $exception->getFile(),
+                'line'      => $exception->getLine(),
+                'message'   => $exception->getMessage(),
+                'trace'     => $exception->getTraceAsString(),
+            );
+            Error::create($data);
+            // }
         });
     }
 }
