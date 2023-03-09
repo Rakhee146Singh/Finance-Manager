@@ -34,14 +34,10 @@ class UserController extends Controller
             'email'      => $request->email,
             'password'   => Hash::make($request->password),
         ]);
-        //generate token for users to access
-        $token = $user->createToken($request->email)->plainTextToken;
-        return response([
-            'token'     => $token,
-            'users'     => $user,
-            'message'   => 'Registered successfully',
-            'status'    => 'success'
-        ], 200);
+        $data = [
+            'users' => $user
+        ];
+        return ok("User registered successfully!", $data);
     }
 
     /**
@@ -58,23 +54,23 @@ class UserController extends Controller
 
         //Check the request of users with email and password
         $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return error("User with this email is not found!");
+        }
         if ($user && Hash::check($request->password, $user->password)) {
 
             //generate token for users to access
             $token = $user->createToken($request->email)->plainTextToken;
 
             //Response in json format with success message
-            return response([
+            $data = [
                 'token'     => $token,
                 'users'     => $user,
-                'message'   => 'Log In successfully',
-                'status'    => 'success'
-            ], 200);
+            ];
+            return ok('User Logged in Succesfully', $data);
+        } else {
+            return error("Password is incorrect");
         }
-        return response([
-            'message' => 'The Provided Credentials are Incorrect.',
-            'status'  => 'failed'
-        ], 401);
     }
 
 
@@ -85,10 +81,6 @@ class UserController extends Controller
     public function logout()
     {
         auth()->user()->tokens()->delete();
-        //Response in json format with success message
-        return response([
-            'message' => 'Log Out Successfully',
-            'status'  => 'success'
-        ], 200);
+        return ok("Logged out successfully!");
     }
 }
