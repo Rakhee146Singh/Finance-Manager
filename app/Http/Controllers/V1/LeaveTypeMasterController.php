@@ -5,6 +5,7 @@ namespace App\Http\Controllers\V1;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\LeaveTypeMaster;
+use App\Http\Helpers\APIResponse;
 
 class LeaveTypeMasterController extends Controller
 {
@@ -16,33 +17,41 @@ class LeaveTypeMasterController extends Controller
     public function list(Request $request)
     {
         $request->validate([
-            'name'          => 'required|string',
-            'sortOrder'     => 'required|in:asc,desc',
-            'sortField'     => 'required|string',
-            'perPage'       => 'required|integer',
-            'currentPage'   => 'required|integer'
+            'search'        => 'nullable',
+            'name'          => 'nullable|string',
+            'sortOrder'     => 'nullable|in:asc,desc',
+            'sortField'     => 'nullable|string',
+            'perPage'       => 'nullable|integer',
+            'currentPage'   => 'nullable|integer'
         ]);
-        $leaves = LeaveTypeMaster::query();  //query
+        $query = LeaveTypeMaster::query();  //query
+
+        /* Searching */
+        if ($request->search) {
+            $query = $query->where("name", "LIKE", "%{$request->search}%");
+        }
 
         //sorting
-        if ($request->sortField && $request->sortOrder) {
-            $leaves = $leaves->orderBy($request->sortField, $request->sortOrder);
-        } else {
-            $leaves = $leaves->orderBy('id', 'DESC');
-        };
-        //searching
-        if (isset($request->name)) {
-            $leaves->where("name", "LIKE", "%{$request->name}%");
+        if ($request->sortField || $request->sortOrder) {
+            $query = $query->orderBy($request->sortField, $request->sortOrder);
         }
-        //pagination
-        $perPage        = $request->perPage;
-        $currentPage    = $request->currentPage;
-        $leaves         = $leaves->skip($perPage * ($currentPage - 1))->take($perPage);
-        return response()->json([
-            'success'   => true,
-            'message'   => "Leave List",
-            'data'      => $leaves->get()
-        ]);
+
+        /* Pagination */
+        $count = $query->count();
+        if ($request->perPage && $request->currentPage) {
+            $perPage        = $request->perPage;
+            $currentPage    = $request->currentPage;
+            $query         = $query->skip($perPage * ($currentPage - 1))->take($perPage);
+        }
+
+        /* Get records */
+        $leaves = $query->get();
+
+        $data = [
+            'count' => $count,
+            'data'  => $leaves
+        ];
+        return ok('Leaves list', $data);
     }
 
     /**
@@ -57,11 +66,7 @@ class LeaveTypeMasterController extends Controller
             'name'      => 'required|string|max:50',
         ]);
         $leave = LeaveTypeMaster::create($request->only('name'));
-        return response()->json([
-            'success'   => true,
-            'message'   => "Leave Type Created Successfully",
-            'data'      => $leave
-        ]);
+        return ok('Leave created successfully!', $leave);
     }
 
     /**
@@ -73,10 +78,7 @@ class LeaveTypeMasterController extends Controller
     public function show($id)
     {
         $leave = LeaveTypeMaster::findOrFail($id);
-        return response()->json([
-            'success'    => true,
-            'data'       => $leave
-        ]);
+        return ok('Leave retrieved successfully', $leave);
     }
 
     /**
@@ -89,13 +91,10 @@ class LeaveTypeMasterController extends Controller
     {
         $leave = LeaveTypeMaster::findOrFail($id);
         $request->validate([
-            'name'    => 'required|string',
+            'name'    => 'required|string|max:50',
         ]);
         $leave->update($request->only('name'));
-        return response()->json([
-            'success' => true,
-            'message' => "Data Updated Successfully",
-        ]);
+        return ok('Leave Updated successfully', $leave);
     }
 
     /**
@@ -107,10 +106,7 @@ class LeaveTypeMasterController extends Controller
     public function delete($id)
     {
         LeaveTypeMaster::findOrFail($id)->forceDelete();
-        return response()->json([
-            'success' => true,
-            'message' => "Data Deleted Successfully",
-        ]);
+        return ok('Leave deleted successfully');
     }
 
     /**
@@ -126,9 +122,6 @@ class LeaveTypeMasterController extends Controller
             'is_active' => 'required|bool'
         ]);
         $leave->update($request->only('is_active'));
-        return response()->json([
-            'success' => true,
-            'message' => "Status Updated Successfully",
-        ]);
+        return ok('Leave Status updated successfully', $leave);
     }
 }
