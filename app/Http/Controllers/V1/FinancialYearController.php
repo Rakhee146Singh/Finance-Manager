@@ -59,8 +59,8 @@ class FinancialYearController extends Controller
     {
         $request->validate([
             'year'          => 'required|max:' . (date('Y') + 1),
-            'start_date'    => 'required',
-            'end_date'      => 'required',
+            'start_date'    => 'required|date_format:Y-m-d',
+            'end_date'      => 'required_if:start_date,after_or_equal:start_date|date_format:Y-m-d',
         ]);
         $finance = FinancialYear::create($request->only('year', 'start_date', 'end_date'));
         return ok('Finance created successfully!', $finance);
@@ -89,8 +89,8 @@ class FinancialYearController extends Controller
         $finance = FinancialYear::findOrFail($id);
         $request->validate([
             'year'          => 'required|max:' . (date('Y') + 1),
-            'start_date'    => 'required',
-            'end_date'      => 'required|after:start_date'
+            'start_date'    => 'required|date_format:Y-m-d',
+            'end_date'      => 'required_if:start_date,after_or_equal:start_date|date_format:Y-m-d',
         ]);
         $finance->update($request->only('year', 'start_date', 'end_date'));
         return ok('Finance updated successfully', $finance);
